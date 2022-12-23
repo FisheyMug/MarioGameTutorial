@@ -1,8 +1,9 @@
-const images = [new Image(),new Image]
+const images = [new Image(),new Image(), new Image(), new Image()]
+
 images[0].src ='/home/fisheymug/Programming/Tutorials/Chris Courses/MarioGame/images/platform.png'
-
 images[1].src ='/home/fisheymug/Programming/Tutorials/Chris Courses/MarioGame/images/hills.png'
-
+images[2].src = '/home/fisheymug/Programming/Tutorials/Chris Courses/MarioGame/images/background.png'
+images[3].src = '/home/fisheymug/Programming/Tutorials/Chris Courses/MarioGame/images/platformSmallTall.png'
 
 
 const canvas = document.querySelector('canvas')
@@ -12,10 +13,12 @@ canvas.height = 576;
 canvas.width = 1074;
 
 const gravity = 0.5
+const platFormWidth = 578
+
 class Player {
     constructor() {
         this.position = {
-            x: 100,
+            x: 400,
             y: 400
         }
         this.width = 30
@@ -24,6 +27,7 @@ class Player {
             x: 0,
             y: 0
         }
+        this.speed = 10
     }
 
     draw() {
@@ -37,13 +41,27 @@ class Player {
         this.position.y += this.velocity.y
         if (this.position.y + this.height + this.velocity.y <= canvas.height) {
             this.velocity.y += gravity
-        } else {this.velocity.y =0
-        }
-        
+        } 
     }
 }
 
 class Platform {
+    constructor({x, y}, image) {
+        this.position = {
+            x,
+            y
+        }
+        this.image = image
+        this.width = platFormWidth
+        
+    }
+
+    draw() {
+        ctx.drawImage(this.image, this.position.x, this.position.y)
+    }
+}
+
+class GenericObject {
     constructor({x, y}, image) {
         this.position = {
             x,
@@ -61,12 +79,11 @@ class Platform {
     }
 }
 
-const player = new Player();
+let player;
 
-const platforms = [
-    new Platform({x: 0, y: 470},images[0]), 
-    new Platform({x: 578, y:470}, images[0])
-]
+let platforms
+
+let genericObjects;
 
 const keys = {
     right: {
@@ -77,6 +94,30 @@ const keys = {
     }
 }
 
+function init() {
+    player = new Player();
+
+    platforms = [
+        new Platform({x: 0, y: 470},images[0]), 
+        new Platform({x: platFormWidth, y:470}, images[0]),
+        new Platform({x:(platFormWidth*2) + 100, y: 470}, images[0]),
+        new Platform({x: (platFormWidth*3) + 300, y:470}, images[0]),
+        new Platform({x:(platFormWidth*5) + 212, y:250}, images[3]),
+        new Platform({x:(platFormWidth*4)+500, y:470}, images[0])
+        
+    ]
+
+    genericObjects = [
+        new GenericObject({x: 0, y:0}, images[2]),
+        new GenericObject({x:0, y:0}, images[1])
+    ]
+
+
+//help determine how far we have gone for win condition
+    scrollOffset = 0;
+}
+
+
 //help determine how far we have gone for win condition
 let scrollOffset = 0;
 
@@ -85,14 +126,18 @@ function animate() {
     animationId = requestAnimationFrame(animate);
     ctx.fillStyle = ("white")
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+    platforms[4].width = platFormWidth/2
+    genericObjects.forEach((genericObject) =>{
+        genericObject.draw()
+    } )
    
     platforms.forEach((platform) => {
-        platform.width = images[0].width
         platform.draw()
     })
 
+    //ctx.drawImage(images[1], 10, 10)
+
     player.update()
-    ctx.drawImage(images[1], 10, 10)
     if (keys.right.pressed && player.position.x < 300) {
        
         player.velocity.x = 5
@@ -104,14 +149,21 @@ function animate() {
         
         if (keys.right.pressed) {
             platforms.forEach((platform)  => {
-                platform.position.x -=5
-                scrollOffset += 5
+                platform.position.x -=player.speed
+                scrollOffset += player.speed
+            })
+            genericObjects.forEach((genericObject)  => {
+                genericObject.position.x -=player.speed *.66
             })
         } else if (keys.left.pressed) {
             platforms.forEach((platform) => {
-                scrollOffset -=5
-                platform.position.x +=5
+                scrollOffset -=player.speed
+                platform.position.x +=player.speed
             })
+            genericObjects.forEach((genericObject) => {
+                genericObject.position.x +=player.speed*.66
+            })
+            
         }
     }
     //platform collision detection
@@ -124,12 +176,18 @@ function animate() {
         }
     })
 
-    if (scrollOffset > 6000) {
+    //win condition
+    if (scrollOffset > 25000) {
         ctx.fillRect(0, 0, canvas.width, canvas.height)
         console.log('Winner Winner')
         cancelAnimationFrame(animationId)
       }
-    console.log(scrollOffset)
+    
+    //lose condition
+    if (player.position.y> canvas.height) {
+        init()
+        console.log("you lose")
+    }
 }
 
 let imageCount = images.length;
@@ -144,6 +202,7 @@ images.forEach(image => {
 });
 
 function allLoaded() {
+    init()
     animate()
 }
 
